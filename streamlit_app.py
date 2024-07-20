@@ -45,8 +45,12 @@ st.title('Maritime Reporting Database Viewer')
 # Sidebar for filters
 st.sidebar.header('Filters')
 
-# Get all schemas
-schemas = run_query("SELECT schema_name FROM information_schema.schemata WHERE schema_name NOT IN ('pg_catalog', 'information_schema', 'public')")
+# Get all schemas, including 'public'
+schemas = run_query("""
+    SELECT schema_name 
+    FROM information_schema.schemata 
+    WHERE schema_name NOT IN ('pg_catalog', 'information_schema')
+""")
 selected_schema = st.sidebar.selectbox('Select a schema', [schema[0] for schema in schemas])
 
 # Get tables for selected schema
