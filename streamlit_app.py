@@ -2,7 +2,7 @@ import streamlit as st
 import psycopg2
 import pandas as pd
 from psycopg2 import sql
-from st_aggrid import AgGrid, GridOptionsBuilder
+from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode, DataReturnMode
 
 # Database connection without caching
 def init_connection():
@@ -85,7 +85,7 @@ if selected_table:
         gb.configure_default_column(resizable=True, wrapText=True, autoHeight=True)
         gridOptions = gb.build()
         st.subheader(f'Data from {selected_schema}.{selected_table}')
-        AgGrid(df, gridOptions=gridOptions, height=500, theme='light')
+        AgGrid(df, gridOptions=gridOptions, height=500, theme='streamlit')  # Corrected theme
         
         # Download button
         csv = df.to_csv(index=False)
@@ -121,7 +121,7 @@ if metadata:
         gb.configure_grid_options(suppressHorizontalScroll=False)
         gridOptions = gb.build()
         st.subheader(f'Metadata for {selected_schema}.{selected_table}')
-        AgGrid(filtered_metadata_df, gridOptions=gridOptions, height=500, theme='light')
+        AgGrid(filtered_metadata_df, gridOptions=gridOptions, height=500, theme='streamlit')  # Corrected theme
     else:
         st.write("No metadata found for this table.")
 else:
