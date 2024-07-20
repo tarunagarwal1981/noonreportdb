@@ -23,7 +23,7 @@ def run_query(query, params=None):
         return cur.fetchall()
 
 # Function to get table columns
-def get_table_columns(table_name, schema='jsmea_voy'):
+def get_table_columns(table_name, schema):
     query = sql.SQL("""
         SELECT column_name 
         FROM information_schema.columns 
@@ -31,15 +31,13 @@ def get_table_columns(table_name, schema='jsmea_voy'):
     """)
     return [col[0] for col in run_query(query, (schema, table_name))]
 
-# Function to get mandatory fields
-def get_mandatory_fields(table_name):
+# Function to get metadata fields
+def get_metadata_fields():
     query = """
-    SELECT column_name
+    SELECT table_name, column_name, data_element_name, definition, standard_unit, additional_info
     FROM public.column_metadata
-    WHERE table_name = %s
-    AND additional_info LIKE '%%mandatory%%'
     """
-    return [field[0] for field in run_query(query, (table_name,))]
+    return run_query(query)
 
 # Streamlit app
 st.title('Maritime Reporting Database Viewer')
@@ -63,10 +61,7 @@ st.header(f'Data View: {selected_schema}.{selected_table}')
 
 if selected_table:
     # Get columns
-    if show_mandatory:
-        columns = get_mandatory_fields(selected_table)
-    else:
-        columns = get_table_columns(selected_table, selected_schema)
+    columns = get_table_columns(selected_table, selected_schema)
     
     if columns:
         # Construct and execute query
@@ -99,16 +94,23 @@ else:
     st.write("Please select a table to view data.")
 
 # Display table metadata
-if selected_table:
-    st.header(f'Metadata for {selected_schema}.{selected_table}')
-    metadata_query = """
-    SELECT column_name, data_element_name, definition, standard_unit, additional_info
-    FROM public.column_metadata
-    WHERE table_name = %s
-    """
-    metadata = run_query(metadata_query, (selected_table,))
-    if metadata:
-        metadata_df = pd.DataFrame(metadata, columns=['Column', 'Data Element', 'Definition', 'Unit', 'Additional Info'])
-        AgGrid(metadata_df, gridOptions=gridOptions)
-    else:
-        st.write("No metadata found for this table.")
+st.header(f'Metadata for {selected_table}')
+metadata = get_metadata_fields()
+
+if metadata:
+    # Convert metadata to DataFrame
+    metadata_df = pd.DataFrame(metadata, columns=['Table Name', 'Column', 'Data Element', 'Definition', 'Unit', 'Additional Info'])
+    
+    # Filter metadata based on the selected table
+    filtered_metadata_df = metadata_df[metadata_df['Table Name'] == selected_table]
+    
+    if show_mandatory:
+        filtered_metadata_df = filtered_metadata_df[filtered_metadata_df['Additional Info'].str.contains('mandatory', case=False, na=False)]
+    
+    # Display metadata using AgGrid
+    gb = GridOptionsBuilder.from_dataframe(filtered_metadata_df)
+    gb.configure_default_column(resizable=True, wrapText=True, autoHeight=True)
+    gridOptions = gb.build()
+    AgGrid(filtered_metadata_df, gridOptions=gridOptions)
+else:
+    st.write("No metadata found.")
