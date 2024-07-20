@@ -1,1 +1,1 @@
-db_connection = "postgresql://username:password@host:port/database"
+postgresql://postgres.lgclrjxwxestrbofditx:wXAryCC8@iwNvj#@aws-0-ap-south-1.pooler.supabase.com:6543/postgres
