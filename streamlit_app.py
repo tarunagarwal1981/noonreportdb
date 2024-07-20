@@ -2,6 +2,7 @@ import streamlit as st
 import psycopg2
 import pandas as pd
 from psycopg2 import sql
+from st_aggrid import AgGrid, GridOptionsBuilder
 
 # Database connection without caching
 def init_connection():
@@ -77,9 +78,12 @@ if selected_table:
         )
         data = run_query(query)
         
-        # Display data
+        # Display data using AgGrid
         df = pd.DataFrame(data, columns=columns)
-        st.dataframe(df)
+        gb = GridOptionsBuilder.from_dataframe(df)
+        gb.configure_default_column(resizable=True, wrapText=True, autoHeight=True)
+        gridOptions = gb.build()
+        AgGrid(df, gridOptions=gridOptions)
         
         # Download button
         csv = df.to_csv(index=False)
@@ -105,6 +109,6 @@ if selected_table:
     metadata = run_query(metadata_query, (selected_table,))
     if metadata:
         metadata_df = pd.DataFrame(metadata, columns=['Column', 'Data Element', 'Definition', 'Unit', 'Additional Info'])
-        st.dataframe(metadata_df)
+        AgGrid(metadata_df, gridOptions=gridOptions)
     else:
         st.write("No metadata found for this table.")
