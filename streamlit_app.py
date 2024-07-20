@@ -6,15 +6,21 @@ from psycopg2 import sql
 # Database connection
 @st.cache_resource
 def init_connection():
-    return psycopg2.connect(st.secrets["db_connection"])
+    return psycopg2.connect(
+        host=st.secrets["db_connection"]["host"],
+        port=st.secrets["db_connection"]["port"],
+        dbname=st.secrets["db_connection"]["dbname"],
+        user=st.secrets["db_connection"]["user"],
+        password=st.secrets["db_connection"]["password"]
+    )
 
 conn = init_connection()
 
 # Function to run queries
 @st.cache_data
-def run_query(query):
+def run_query(query, params=None):
     with conn.cursor() as cur:
-        cur.execute(query)
+        cur.execute(query, params)
         return cur.fetchall()
 
 # Function to get table columns
@@ -23,20 +29,20 @@ def get_table_columns(table_name, schema='jsmea_voy'):
     query = sql.SQL("""
         SELECT column_name 
         FROM information_schema.columns 
-        WHERE table_schema = {} AND table_name = {}
-    """).format(sql.Literal(schema), sql.Literal(table_name))
-    return [col[0] for col in run_query(query)]
+        WHERE table_schema = %s AND table_name = %s
+    """)
+    return [col[0] for col in run_query(query, (schema, table_name))]
 
 # Function to get mandatory fields
 @st.cache_data
 def get_mandatory_fields(table_name):
-    query = f"""
+    query = """
     SELECT column_name
     FROM public.column_metadata
-    WHERE table_name = '{table_name}'
-    AND additional_info LIKE '%mandatory%'
+    WHERE table_name = %s
+    AND additional_info LIKE '%%mandatory%%'
     """
-    return [field[0] for field in run_query(query)]
+    return [field[0] for field in run_query(query, (table_name,))]
 
 # Streamlit app
 st.title('Maritime Reporting Database Viewer')
@@ -49,7 +55,7 @@ schemas = run_query("SELECT schema_name FROM information_schema.schemata WHERE s
 selected_schema = st.sidebar.selectbox('Select a schema', [schema[0] for schema in schemas])
 
 # Get tables for selected schema
-tables = run_query(f"SELECT table_name FROM information_schema.tables WHERE table_schema = '{selected_schema}'")
+tables = run_query("SELECT table_name FROM information_schema.tables WHERE table_schema = %s", (selected_schema,))
 selected_table = st.sidebar.selectbox('Select a table', [table[0] for table in tables])
 
 # Option to show only mandatory fields
@@ -95,12 +101,12 @@ else:
 # Display table metadata
 if selected_table:
     st.header(f'Metadata for {selected_schema}.{selected_table}')
-    metadata_query = f"""
+    metadata_query = """
     SELECT column_name, data_element_name, definition, standard_unit, additional_info
     FROM public.column_metadata
-    WHERE table_name = '{selected_table}'
+    WHERE table_name = %s
     """
-    metadata = run_query(metadata_query)
+    metadata = run_query(metadata_query, (selected_table,))
     if metadata:
         metadata_df = pd.DataFrame(metadata, columns=['Column', 'Data Element', 'Definition', 'Unit', 'Additional Info'])
         st.dataframe(metadata_df)
