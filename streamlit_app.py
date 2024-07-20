@@ -111,9 +111,12 @@ if metadata:
     if show_mandatory:
         filtered_metadata_df = filtered_metadata_df[filtered_metadata_df['Additional Info'].str.contains('mandatory', case=False, na=False)]
     
-    # Display metadata using AgGrid
+    # Display metadata using AgGrid with increased width
     gb = GridOptionsBuilder.from_dataframe(filtered_metadata_df)
     gb.configure_default_column(resizable=True, wrapText=True, autoHeight=True)
+    gb.configure_grid_options(suppressHorizontalScroll=False)
+    for column in gb.build()['columnDefs']:
+        column['width'] = 200  # Increase column width as needed
     gridOptions = gb.build()
     AgGrid(filtered_metadata_df, gridOptions=gridOptions)
 else:
