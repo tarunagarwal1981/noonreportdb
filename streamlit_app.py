@@ -3,8 +3,7 @@ import psycopg2
 import pandas as pd
 from psycopg2 import sql
 
-# Database connection
-@st.cache_resource
+# Database connection without caching
 def init_connection():
     return psycopg2.connect(
         host=st.secrets["db_connection"]["host"],
@@ -17,14 +16,12 @@ def init_connection():
 conn = init_connection()
 
 # Function to run queries
-@st.cache_data
 def run_query(query, params=None):
     with conn.cursor() as cur:
         cur.execute(query, params)
         return cur.fetchall()
 
 # Function to get table columns
-@st.cache_data
 def get_table_columns(table_name, schema='jsmea_voy'):
     query = sql.SQL("""
         SELECT column_name 
@@ -34,7 +31,6 @@ def get_table_columns(table_name, schema='jsmea_voy'):
     return [col[0] for col in run_query(query, (schema, table_name))]
 
 # Function to get mandatory fields
-@st.cache_data
 def get_mandatory_fields(table_name):
     query = """
     SELECT column_name
