@@ -40,6 +40,8 @@ def get_metadata_fields():
     return run_query(query)
 
 # Streamlit app
+st.set_page_config(layout="wide")
+
 st.title('Maritime Reporting Database Viewer')
 
 # Sidebar for filters
@@ -82,7 +84,8 @@ if selected_table:
         gb = GridOptionsBuilder.from_dataframe(df)
         gb.configure_default_column(resizable=True, wrapText=True, autoHeight=True)
         gridOptions = gb.build()
-        AgGrid(df, gridOptions=gridOptions)
+        st.subheader(f'Data from {selected_schema}.{selected_table}')
+        AgGrid(df, gridOptions=gridOptions, height=500, theme='light')
         
         # Download button
         csv = df.to_csv(index=False)
@@ -111,13 +114,15 @@ if metadata:
     if show_mandatory:
         filtered_metadata_df = filtered_metadata_df[filtered_metadata_df['Additional Info'].str.contains('mandatory', case=False, na=False)]
     
-    # Display metadata using AgGrid with increased width
-    gb = GridOptionsBuilder.from_dataframe(filtered_metadata_df)
-    gb.configure_default_column(resizable=True, wrapText=True, autoHeight=True)
-    gb.configure_grid_options(suppressHorizontalScroll=False)
-    for column in gb.build()['columnDefs']:
-        column['width'] = 200  # Increase column width as needed
-    gridOptions = gb.build()
-    AgGrid(filtered_metadata_df, gridOptions=gridOptions)
+    if not filtered_metadata_df.empty:
+        # Display metadata using AgGrid with increased width
+        gb = GridOptionsBuilder.from_dataframe(filtered_metadata_df)
+        gb.configure_default_column(resizable=True, wrapText=True, autoHeight=True)
+        gb.configure_grid_options(suppressHorizontalScroll=False)
+        gridOptions = gb.build()
+        st.subheader(f'Metadata for {selected_schema}.{selected_table}')
+        AgGrid(filtered_metadata_df, gridOptions=gridOptions, height=500, theme='light')
+    else:
+        st.write("No metadata found for this table.")
 else:
     st.write("No metadata found.")
